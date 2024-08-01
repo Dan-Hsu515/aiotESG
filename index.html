@@ -1,0 +1,174 @@
+<html><head><base href="https://websim.digital/regression/" />
+<style>
+body {
+    background-color: #001f3f;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+.slider-container {
+    margin-bottom: 15px;
+}
+.slider-container label {
+    display: inline-block;
+    width: 150px;
+}
+input[type="range"] {
+    width: 200px;
+    vertical-align: middle;
+}
+.value-display {
+    display: inline-block;
+    width: 50px;
+    text-align: right;
+}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@^1.4.0/dist/streamlit.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<div style="display: flex;">
+  <div id="controls" style="width: 30%; padding: 20px; background-color: rgba(255,255,255,0.1); border-radius: 10px;">
+    <h3>Controls</h3>
+    <div class="slider-container">
+      <label for="a">Slope (a):</label>
+      <input type="range" id="a" min="-50" max="50" value="0" step="1">
+      <span id="a-value" class="value-display">0</span>
+    </div>
+    <div class="slider-container">
+      <label for="b">Intercept (b):</label>
+      <input type="range" id="b" min="-50" max="50" value="0" step="1">
+      <span id="b-value" class="value-display">0</span>
+    </div>
+    <div class="slider-container">
+      <label for="n">Number of points (n):</label>
+      <input type="range" id="n" min="100" max="1000" value="500" step="10">
+      <span id="n-value" class="value-display">500</span>
+    </div>
+    <div class="slider-container">
+      <label for="c">Noise factor (c):</label>
+      <input type="range" id="c" min="10" max="100" value="50" step="1">
+      <span id="c-value" class="value-display">50</span>
+    </div>
+    <button id="generate" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Generate</button>
+  </div>
+  <div id="output" style="width: 70%;">
+    <div id="plot"></div>
+  </div>
+</div>
+
+<script>
+function generateData(a, b, n, c) {
+  const x = Array.from({length: n}, () => Math.random() * 20 - 10);
+  const y = x.map(xi => a * xi + b + c * (Math.random() + Math.random() + Math.random() - 1.5));
+  return {x, y};
+}
+
+function linearRegression(x, y) {
+  const n = x.length;
+  let sum_x = 0, sum_y = 0, sum_xy = 0, sum_xx = 0;
+
+  for (let i = 0; i < n; i++) {
+    sum_x += x[i];
+    sum_y += y[i];
+    sum_xy += x[i] * y[i];
+    sum_xx += x[i] * x[i];
+  }
+
+  const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+  const intercept = (sum_y - slope * sum_x) / n;
+
+  return {slope, intercept};
+}
+
+function updatePlot() {
+  const a = parseFloat(document.getElementById('a').value);
+  const b = parseFloat(document.getElementById('b').value);
+  const n = parseInt(document.getElementById('n').value);
+  const c = parseFloat(document.getElementById('c').value);
+
+  const {x, y} = generateData(a, b, n, c);
+  const {slope, intercept} = linearRegression(x, y);
+
+  const trace1 = {
+    x: x,
+    y: y,
+    mode: 'markers',
+    type: 'scatter',
+    name: 'Data Points',
+    marker: {
+      symbol: 'star',
+      size: 8,
+      color: 'silver',
+      line: {
+        color: 'white',
+        width: 1
+      },
+      opacity: Array(n).fill().map(() => Math.random() * 0.5 + 0.5)  // Random opacity for twinkling effect
+    }
+  };
+
+  const trace2 = {
+    x: [-10, 10],
+    y: [-10 * a + b, 10 * a + b],
+    mode: 'lines',
+    type: 'scatter',
+    name: 'True Line (y = ax + b)',
+    line: {color: 'red', width: 2}
+  };
+
+  const trace3 = {
+    x: [-10, 10],
+    y: [-10 * slope + intercept, 10 * slope + intercept],
+    mode: 'lines',
+    type: 'scatter',
+    name: 'Fitted Regression Line',
+    line: {color: 'green', width: 2, dash: 'dash'}
+  };
+
+  const layout = {
+    title: {
+      text: 'Twinkling Stars Linear Regression',
+      font: { color: 'white' }
+    },
+    xaxis: {title: 'X', color: 'white'},
+    yaxis: {title: 'Y', color: 'white'},
+    plot_bgcolor: '#001f3f',
+    paper_bgcolor: '#001f3f',
+    font: { color: 'white' },
+    legend: { font: { color: 'white' } }
+  };
+
+  Plotly.newPlot('plot', [trace1, trace2, trace3], layout);
+
+  // Animate twinkling effect
+  setInterval(() => {
+    const update = {
+      'marker.opacity': [Array(n).fill().map(() => Math.random() * 0.5 + 0.5)]
+    };
+    Plotly.restyle('plot', update, [0]);
+  }, 1000);
+}
+
+document.getElementById('a').addEventListener('input', function() {
+  document.getElementById('a-value').textContent = this.value;
+});
+
+document.getElementById('b').addEventListener('input', function() {
+  document.getElementById('b-value').textContent = this.value;
+});
+
+document.getElementById('n').addEventListener('input', function() {
+  document.getElementById('n-value').textContent = this.value;
+});
+
+document.getElementById('c').addEventListener('input', function() {
+  document.getElementById('c-value').textContent = this.value;
+});
+
+document.getElementById('generate').addEventListener('click', updatePlot);
+
+// Initial plot
+updatePlot();
+</script>
+</body></html>
